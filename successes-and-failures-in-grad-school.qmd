@@ -1,0 +1,1180 @@
+---
+title: "My Successes and Failures in Graduate School"
+subtitle: "How to Think like a Resilient Scientist"
+format: 
+  revealjs:
+    theme: custom-light.scss
+    preview-links: false
+    incremental: true
+    chalkboard: 
+      buttons: false
+    auto-animate-easing: ease-in-out
+    auto-animate-unmatched: true
+    auto-animate-duration: 0.8
+    menu:
+      side: right
+      width: half
+from: markdown+emoji
+author: 
+  - name: Colton Baumler
+    orcid: 0000-0002-5926-7792
+    email: ccbaumler@ucdavis.edu
+    affiliations: University of California, Davis
+date: last-modified
+date-format: "dddd, [the] D[<sup style='font-size:65%;font-style:italic;'>th</sup>] [of] MMMM, YYYY"
+execute:
+  echo: true
+  warning: false
+  message: false
+---
+
+# What defines success and failure in academia?
+
+- The making of a scientist
+- Navigating higher education
+- What is a PhD like
+- Research
+
+::: {.notes}
+
+Ask the question. Each point under is another question.
+i.e. Is it where they came from, knowing how to navigate, understanding what to expect, or just the research?
+
+> I am seeking graduate student guest speakers for my EEOP BIS 198 professional development course in spring quarter. EEOP students are from marginalized backgrounds, currently work in labs, and aspire to have research careers.
+
+> The topic of the presentation would be your journey to graduate school, and your current research. Any pearls of wisdom and words of encouragement that you have to offer are enthusiastically welcome. The class lasts 50 minutes, and you can have the entire time.
+
+:::
+
+```{r Libraries}
+#| echo: false
+# To install > BiocManager::install("curatedMetagenomicData")
+library(curatedMetagenomicData) # A large dataset of curated metadata for metagenomic data
+
+library(ggtext) # Improved text rendering for ggplots
+library(elementalist) # devtools::install_github("teunbrand/elementalist") for more variety of elements. See element_rect_round()
+
+library(patchwork) # Compose plots in specific arrangements
+library(gt) # For truly beautiful tables
+library(gtExtras) # For even prettier tables!!!
+
+library(owidR)
+library(tidyverse)
+library(ggrepel)
+```
+
+
+# What makes a scientist?
+
+::: {.columns}
+
+:::: {.column width="70%"}
+
+Who is a scientist?
+
+Where do they come from?
+
+What do they look like?
+
+::::
+
+:::: {.column width="10%"}
+<!-- empty column to create gap -->
+::::
+
+:::: {.column width="20%"}
+
+<br>
+
+[[This?](https://duckduckgo.com/?q=scientist&iax=images&ia=images){target="_blank"}]{.fragment}
+
+::::
+
+:::
+
+::: notes
+Search "scientist"
+
+:::
+
+## Hispanic, Black, and American Indian or Alaska Native students are underrepresented among S&E graduate students
+
+::: {.notes}
+This has shown a trend of increasing over time from ~60,000 (2017) to ~100,000 (2021)
+:::
+
+![National Center for Science and Engineering Statistics, 2021 Survey of Graduate Students and Postdoctorates in Science and Engineering](race-ethnicity.svg){.lightbox}
+
+## The number of women enrolled in S&E graduate programs increased from 2017 to 2021
+
+```{r}
+#| echo: false
+
+# Create the Master's data
+data <- tibble(
+  year = c(2017, 2018, 2019, 2020, 2021, 2017, 2018, 2019, 2020, 2021),
+  male = c(188466, 188452, 193601, 189133, 213066, 150851, 152916, 154124, 152999, 155331),
+  female = c(137459, 145939, 158133, 165221, 187856, 104373, 108249, 111837, 115022, 121581),
+  position = c("Master's","Master's","Master's","Master's","Master's", "Doctoral","Doctoral","Doctoral","Doctoral","Doctoral"),
+)
+
+data_wide <- data %>%
+  pivot_wider(names_from = position, values_from = c(male, female))
+
+#print(data_wide)
+
+data_long <- data %>%
+  pivot_longer(cols = c(male, female), names_to = "sex", values_to = "y") %>%
+  mutate(position_sex = paste(position, sex, sep = ", "))
+
+#print(data_long)
+
+```
+
+
+```{r line plot func}
+#| echo: false
+
+line_plot <- function(test, y, title = NULL, subtitle = NULL, caption = NULL) {
+  max_x <- max(test$year)
+  min_x <- min(test$year)
+  tens_x <- seq(min_x, max_x, by = 1)  
+  
+  test %>%
+    mutate(label = if_else(year == max(year), as.character(sex), NA_character_)) %>%
+    ggplot(aes(x = year, y = !!rlang::ensym(y), group = position_sex, color = position_sex)) +
+    geom_path(linewidth = 1, show.legend = FALSE) +
+    geom_point(show.legend = TRUE) +
+    facet_wrap(~position, scales = "free_y") +
+    geom_label_repel(aes(label = str_wrap(label, 15)),
+                     nudge_x = 1.2,
+                     na.rm = TRUE,
+                     show.legend = FALSE) +
+    geom_vline(xintercept = min_x, linetype = "solid", color = "grey") +  # Add vertical line at max_x
+    geom_vline(xintercept = max_x, linetype = "solid", color = "grey") +  # Add vertical line at max_x
+    lapply(tens_x, function(x) {
+      geom_vline(xintercept = x, linetype = "solid", color = "grey")
+    }) +
+    theme(axis.line = element_line(size = 1, color = 'black'),
+          axis.ticks = element_blank(),
+          #axis.text.x = element_blank(),
+          axis.title.x = element_blank(),
+          axis.title.y = element_blank(),
+          #legend.position = "none",
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid.major = element_line(size = .1, color = "grey"),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.grid.minor.x = element_blank(),
+          plot.title = element_text(size = 16, hjust = 0.5, face = "bold", colour = "black", vjust = 1),
+          plot.subtitle = element_text(size = 14, hjust = 0.5, face = "italic", color = "black"),
+          plot.caption = element_text(size = 8, hjust = 0.5, face = "italic", color = "black"),
+          plot.background = element_rect(fill = "transparent"),
+          plot.margin = margin(t = 2, r = 20, b = 20, l = 20, "pt")) +
+    labs(title = title,
+         subtitle = subtitle,
+         caption = caption,
+         color = 'Position, Sex')
+}
+```
+
+```{r}
+#| echo: false
+line_plot(data_long, y=y,
+          title = 'Science & Engineering graduate students',
+          subtitle = 'by sex and level of enrollment: 2017–21',
+          caption = paste('National Center for Science and Engineering Statistics','\n', 'Survey of Graduate Students and Postdoctorates in Science and Engineering, 2021.'))
+```
+
+## Individuals with at least one disability earned 11% of S&E doctorate degrees. {.small}
+
+![National Center of Science and Engineering Statistics, 2021 Survey of Earned Doctorates](disability.svg){.lightbox}
+
+[[https://disabilityin.org/](https://disabilityin.org/){target="_blank"}]{.small}
+
+## The professoriate is, and has remained, accessible disproportionately to the socioeconomically privileged {.small}
+
+::: notes
+
+Our results suggest that the professoriate is, and has remained, accessible disproportionately to the socioeconomically privileged, which is likely to deeply shape their scholarship and their reproduction.
+
+:::
+
+[Socioeconomic roots of academic faculty](https://www.nature.com/articles/s41562-022-01425-4){target="_blank"}
+
+  - grew up in neighborhoods with median household incomes 24% higher than the national average. 
+  - 25 times more likely to have a parent with a Ph.D.
+  - A trend of more than 50 years
+  
+![Amount of support parents provided for academic careers on a scale of 1 (None at all) to 5 (A lot), stratified by faculty members’ parents’ highest education levels.](41562_2022_1425_Fig3_HTML.webp)
+
+## Anyone from anywhere has scientific potential
+
+Who is a scientist? 
+
+  - Anyone who asks a question, reads the literature, gathers results, and writes their thoughts down
+
+Where do they come from?
+
+  - Everywhere.
+
+What do they look like?
+
+  - Anyone.
+
+# Navigating higher education
+
+I am a scientist.
+
+I was not raised to be one, but became one with the help of others.
+
+::: notes
+
+Why am I showing you this? Because I never thought I could be in higher ed. I never thought I could be a scientist.
+I grew up in (financial, food, housing) instability where there was (violence, emotional manipulation, drug abuse)
+
+Who can be a scientist? I posit anyone, but what do you need? Help from others!!!
+
+:::
+
+## Anyone can become a scientist with curiosity, persistance, and luck!
+
+### Navigating higher education -- CSP
+
+- Switch major from engineering to sciences
+- Pursued research in each topic of interest
+- Continued blue collar work while starting a family
+
+![](undergrad-bench.jpg){.absolute bottom=0 left=150 width="200"}
+![](yanglab-photo.png){.absolute bottom=0 left=400 width="250"}
+![](graduation.jpg){.absolute bottom=0 left=700 width="200"}
+
+## PREP is pivotal for individuals not prepared for graduate school
+
+### Navigating higher education -- PREP@UCD
+
+- I decided much too late to begin graduate school applications
+- My scientific writing was very weak
+- Post-Bacc programs exist to help the disadvantaged enter graduate school
+    - [A map of institutions with a **P**ost-Baccalaureate **R**esearch **E**ducation **P**rogram  ](https://www.nigms.nih.gov/maps/Pages/Post-Baccalaureate-Research-Education-Program-Institutions.aspx){target="_blank"}
+
+![](draft_edits.png){.absolute bottom=0 left=150 width="300"}
+
+![](grad-bench-crop.png){.absolute bottom=0 left=500 width="200"}
+
+## Graduate school programs have a relatively simple structure
+
+### Navigating higher education -- BMCDB
+
+::: {.columns}
+
+:::: {.column width="50%"}
+
+1. Umbrella program or Standalone program
+2. Courses and lab choices
+    i) rotations or predetermined lab assignment 
+        - time management
+        - healthy workplace boundary
+
+::::
+
+:::: {.column width="50%"}
+
+3. establish foundation in domain
+    i) literature review
+    ii) project design
+    iii) QE
+
+4. Dissertation work
+    i) literature review
+    ii) 2-3 peer reviewed articles
+
+::::
+
+:::
+
+# What is a PhD like?
+
+It can be the best/worst decision of your career.
+
+::: notes
+
+Because that simple structure I just discussed is filled with bureaucratic 
+paperwork, finding funding, and fighting for results
+
+The two things you need are stubbornness and funding
+
+:::
+
+## Failures and Success are all transient {.smaller}
+
+### Change is the only inevitable constant
+
+::: notes
+
+The Farmer and their son, a very old parable focused on Daoism
+
+Life neither has nor needs a reason. It simply happens.
+
+Stoic equanimity (calm composure), not apathy. It is impossible to recognize the future consequence.
+In this knowledge he finds his calm and lasting, true happiness: he accepts life as it is
+
+:::
+
+::: {.columns}
+
+:::: {.column width="50%"}
+
+:::::{.nonincremental}
+
+One day, the Farmer's only horse ran away
+
+ - "What bad luck!" said their Neighbors
+ - "Maybe" replied the Farmer
+
+Later, the horse returned with three wild horses
+
+ - "What good luck!" said their Neighbors
+ - "Maybe" replied the Farmer
+
+:::::
+
+::::
+
+:::: {.column width="50%"}
+
+:::::{.nonincremental}
+
+While training the horse, the son of the farmer was badly injured
+
+ - "What bad luck!" said their Neighbors
+ - "Maybe" replied the Farmer
+ 
+While recovering, a conscripting army comes to town but does not take the son
+
+ - "What good luck!" said their Neighbors
+ - "Maybe" replied the Farmer
+
+:::::
+
+::::
+
+:::
+
+{{< video bluey-farmer.mp4 
+    title="Bluey|The Sign"
+    width="300%" >}}
+ 
+::: notes
+
+
+Learn from and forget your failures. By forgetting the past failures, we are able to live in the present.
+
+:::
+
+## Define your own value by yourself {.smaller}
+
+### What is a PhD like?
+
+Value yourself!!!
+
+- Define your success through achievable goals and acknowledge them!
+    - [Track your completed tasks over a year in a single place](https://github.com/ccbaumler/CV){target="_blank"}
+    - review your successes at the end of the year with pride
+- Failures teach us lessons
+    - Learn the lesson; Forget the failure
+- Do not fear sunken costs 
+    - Do not justifying further investments in something that is bad for you!
+
+## A partially examine career is not worth working
+
+### What is a PhD like?
+
+Consider this:
+
+- You are a student first!
+    - Learn hard skills, but also **soft** skills
+- You are surrounding yourself with intelligent, yet overworked people
+    - We are all capable of mistakes
+- Define your expectations *and* the expectations of others
+
+## Finding a ***your*** lab is hard {.scrollable}
+
+### What is a PhD like?
+
+![Graduate school experiences are controlled by three factors](grad-school-lab-choice.svg)
+
+## Look for lab with trust, growth options, flexibility, and respect {.scrollable}
+
+### What is a PhD like?
+
++---------------------+-------------------------------------------+---------------------------------------------------+
+| Lab Aspect          | Details                                   | Without                                           |
++=====================+===========================================+===================================================+
+| Trust               | - In each other                           | - Lack motivation among members                   |
+|                     | - In leadership                           | - Lack of confidence in leadership                |
+|                     | - From leadership                         | - No trust from leadership (i.e. micromanagment)  |
++---------------------+-------------------------------------------+---------------------------------------------------+
+| Growth              | - Hard skills                             | - Stagnation in skill development                 |
+| Opportunities       | - Soft skills                             | - Limited interpersonal growth                    |
+|                     | - External options                        | - No networking, internships, or learning options |
++---------------------+-------------------------------------------+---------------------------------------------------+
+| Flexibility         | - Work/life balance                       | - Unrealistic deadlines and boundaries            |
+|                     | - Good and bad times                      | - Inflexibility during challenging times          |
++---------------------+-------------------------------------------+---------------------------------------------------+
+| Value               | - In your work                            | - Feeling unrecognized for your contributions     |
+|                     | - In the respect from others              | - Toxic, mean, or unfair colleagues               |
+|                     | - In the respect from leadership          | - Incompetent, unsupportive, abusive leadership   |
++---------------------+-------------------------------------------+---------------------------------------------------+
+
+: {tbl-colwidths="[20,30,50]" .striped .hover}
+
+## Funding is hard to get, but you only need a source for yourself
+
+### What is a PhD like?
+
+Funding options:
+
+- lab, TA, fellowship, or secondary source
+- $33,500-47,000 annual pay
+- Additional awards
+
+## Money is not the source of happiness, but it sure does help
+
+### What is a PhD like?
+
+Bioinformatics outlook
+
+- Job growth is **23% by 2032**
+    - Microbiologist is 7%
+- $120,000 average annual earnings
+    - Master's - $83,000
+    - Microbiologist - $93,000
+- Transferable skills!
+
+# [A foundation of knowledge is key to success in knowledge work]{.smaller} {.smaller}
+
+What is a resilient scientist?
+
+- What a scientist is. A curious mind.
+    - Everyone could be a scientist. They simply must ask questions, unrelentingly pursue answers, and document their findings!
+
+- Navigate higher education with the help of others! 
+    - No person is an island and no graduate student should be left alone.
+
+- By understanding that a PhD is not easy, but it is very rewarding!!! 
+    - Success can be found with persistence, acceptance, project management (i.e. soft skills), and funding
+
+# My research
+
+## Beautiful tables and figures in a well-crafted report is invaluable
+
+### Research overview
+
+```{r Meta-overview, warning=FALSE, out.width="100%"}
+#| fig-align: center
+#| echo: false
+#| lightbox: true
+# Overall theme function
+crc_subset <- sampleMetadata %>%
+  filter(str_detect(disease, "CRC|adenoma")) %>%
+  group_by(study_name) %>%
+  summarize() %>%
+  as.vector()
+
+theme_gofer <- function(strip_background = "#1f58b5", margins = c(0, 0, 0, 0), line_plot = FALSE) {
+  if(line_plot) {
+    theme_light() +
+      theme(
+        panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "black"),
+        panel.grid.minor = element_line(size = 0.5, linetype = 'solid', colour = "black"),
+        axis.text.y = element_text(size = 10),
+        panel.background = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        plot.margin = unit(margins, "cm"),
+        axis.title.y = element_blank(),
+        strip.background = element_rect(fill = strip_background),
+        strip.text = element_text(size = 15, colour = "white"),
+        legend.position = "none",
+        axis.ticks = element_line(size = 0.5, linetype = 'solid', colour = "black")
+      )
+  } else {
+    theme_light() +
+      theme(
+        panel.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        plot.background = element_blank(),
+        plot.margin = unit(margins, "cm"),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        strip.background = element_rect(fill = strip_background),
+        strip.text = element_text(size = 15, colour = "white"),
+        legend.position = "none"
+      )
+  }
+}
+
+theme_gofer2 <- function(strip_background = "#1f58b5", margins = c(0, 0, 0, 0), line_plot = FALSE, na_rm = FALSE) {
+  base_theme <- theme(
+    panel.background = element_blank(),
+    panel.border = element_blank(),
+    panel.grid = element_blank(),
+    plot.background = element_blank(),
+    plot.margin = unit(margins, "cm"),
+    strip.background = element_rect(fill = strip_background),
+    strip.text = element_text(size = 15, colour = "white"),
+    legend.position = "none"
+  )
+  
+  if (na_rm) {
+    base_theme <- base_theme + theme(
+      axis.title = element_blank(),
+      axis.text = element_blank(),
+      axis.ticks = element_blank()
+    )
+  }
+  
+  if (line_plot) {
+    base_theme <- base_theme + theme(
+      panel.grid.major = element_line(size = 0.5, linetype = 'solid', colour = "black"),
+      panel.grid.minor = element_line(size = 0.5, linetype = 'solid', colour = "black"),
+      axis.text.y = element_text(size = 10),
+      axis.ticks = element_line(size = 0.5, linetype = 'solid', colour = "black")
+    )
+  }
+  
+  return(base_theme)
+}
+
+
+
+# Function to simplify title pane creation
+title_panel <- function(title, fill_color) {
+  ggplot() + labs(title = title) +
+  theme(plot.background = element_rect_round(fill = fill_color,
+                                       color = "white",
+                                       size = 2,
+                                      radius = unit(8, "pt")),
+        panel.background = element_blank(),
+        plot.title = element_text(size = 15,
+                                  hjust = 0.5,
+                                  vjust = -0.5, 
+                                  face = "bold", 
+                                  color = "white",
+                                  )
+        )
+}
+
+data_gofer <- sampleMetadata %>%
+  filter(.data[["study_name"]] %in% crc_subset[["study_name"]]) %>%
+  select(where(function(x) any(!is.na(x)))) %>%
+  mutate(NCBI_accession = strsplit(as.character(NCBI_accession), ";")) %>%
+  mutate(case_control = case_when(study_condition == "CRC" ~ "case",
+                                  study_condition == "adenoma" ~ "case",
+                                  .default = study_condition)) %>%
+  mutate(name_cond = paste0(study_name, "_", case_control)) %>%
+  mutate(study_year = stringr::str_split(study_name, "_", simplify = TRUE)[,2]) %>% 
+  mutate(nice_name = stringr::str_split(study_name, "_", simplify = TRUE)[,1],
+         nice_name = stringr::str_replace(nice_name, "([a-z])([A-Z]*)$", "\\1, \\2 et al")) %>%
+  #
+  unnest(NCBI_accession, keep_empty = FALSE) %>%
+  filter(!is.na(NCBI_accession)) %>%
+  filter(!is.na(study_condition)) %>%
+  group_by(name_cond) %>%
+  mutate(num_rows = n()) %>%
+  ungroup() %>% 
+  ## arrange study and groups to show in the correct order in the graph
+  dplyr::arrange(dplyr::desc(name_cond), dplyr::desc(study_condition)) %>%
+  dplyr::mutate(name_cond = forcats::as_factor(name_cond)) %>%
+  mutate(index = as.numeric(name_cond)) %>%
+  tidyr::nest_legacy(-name_cond) %>%
+  dplyr::rename(study = name_cond)
+
+n_lines <- nrow(data_gofer) + 1
+
+# Make the grid
+p_grid <- data_gofer %>% 
+  dplyr::add_row(study = NA) %>%
+  ggplot() +
+  ggfittext::geom_fit_text(aes(x = study, y = 0, label = ""),
+                           place = "left",
+                           reflow = TRUE,
+                           fontface = "plain",
+                           position = position_dodge(width = 0.7),
+                           show.legend = FALSE,
+                           na.rm = TRUE) +
+  geom_vline(xintercept = seq(1, n_lines, 1)  - 0.5) +
+  theme_void() +
+  coord_flip()
+
+p_gap_grid <- data_gofer %>% 
+  dplyr::add_row(study = NA) %>%
+  ggplot() +
+  ## here although we do not plot the study labels yet, this is needed to ensure
+  ## that plots will be aligned across panels since they always share the same x-axis (study)
+  ggfittext::geom_fit_text(aes(x = study, y = 0, label = ""),
+                           place = "left",
+                           reflow = TRUE,
+                           fontface = "plain",
+                           position = position_dodge(width = 0.7),
+                           show.legend = FALSE,
+                           na.rm = TRUE) +
+  geom_vline(xintercept = seq(from = 1, to = n_lines, by = 2) - 0.5, size = 1) +
+  theme_void() +
+  coord_flip()
+
+# Gather the studies
+p_studies <- data_gofer %>%
+  unnest_legacy() %>%
+  select(study, nice_name, index) %>%
+  rbind(data.frame(study = NA, nice_name = NA, index = n_lines)) %>%
+  group_by(study) %>%
+  arrange(index) %>%
+  ggplot() +
+geom_text(aes(x = index, y = 0, label = ifelse(index %% 2 == 0, str_wrap(nice_name, 15), "")),
+                           fontface = "bold",
+                           size = 2.5,
+                           show.legend = FALSE,
+                           na.rm = TRUE) +
+  coord_flip() +
+  theme_gofer(line_plot = FALSE) 
+
+# Prepare the sample data
+data_sample <- data_gofer %>%
+  tidyr::unnest_legacy() %>%
+  dplyr::select(study, body_site, study_condition, country, num_rows) %>%
+  dplyr::distinct_all() %>%
+  dplyr::group_by(study) %>% 
+  dplyr::arrange(dplyr::desc(country)) %>%
+  summarise_all(~ toString(unique(.))) %>%
+  dplyr::arrange(dplyr::desc(study)) %>%
+  dplyr::mutate(fill = dplyr::case_when(
+                  study_condition == "CRC" ~ "#fdb863",
+                  str_detect(study_condition, "adenoma") ~ "#e08214",
+                  study_condition == "control" ~ "#355c7d"
+                )) %>%
+  dplyr::mutate(across(all_of(c("num_rows")), as.numeric)) %>%
+  dplyr::mutate(percentage = num_rows/sum(num_rows)) %>%
+  dplyr::mutate(
+    dummy_body_site = 0.15,
+    dummy_study_condition = 1.5,
+    dummy_country = 3.35,
+    dummy_num_rows = 4.65
+  ) |>
+  dplyr::as_tibble() |>
+  dplyr::add_row(study = NA)
+
+# Create sample graph
+p_sample <- data_sample %>% 
+  ggplot() +
+  ## Site
+  geom_text(aes(x = study, y = dummy_body_site, label = body_site),
+                     fontface = "plain",
+                     show.legend = FALSE,
+                     na.rm = TRUE) +
+  ## Site subheading
+  geom_text(aes(x = NA, y = dummy_body_site),
+                     label = "Type",
+                     size = 3,
+                     fontface = "bold",
+                     show.legend = FALSE,
+                     na.rm = TRUE) +
+  ## Condition
+  geom_label(aes(x = study, y = dummy_study_condition, label = study_condition, fill = fill),
+                     color = "white",
+                     fontface = "bold",
+                     size = 2,
+                     na.rm = TRUE) +
+  ## Condition subheading
+  geom_text(aes(x = NA, y = dummy_study_condition),
+                     label = "Condition",
+                     size = 3,
+                     fontface = "bold",
+                     show.legend = FALSE,
+                     na.rm = TRUE) +
+  ## Country
+  geom_text(aes(x = study, y = dummy_country, label = country),
+                      fontface = "plain",
+                      show.legend = FALSE,
+                      na.rm = TRUE) +
+  ## Country subheading
+  geom_text(aes(x = NA, y = dummy_country),
+                     label = "Country",
+                     size = 3,
+                     fontface = "bold",
+                     show.legend = FALSE,
+                     na.rm = TRUE) +
+  ## Sample_count
+  geom_segment(aes(x = study, y = dummy_num_rows - (percentage*1.5), xend = study, yend = dummy_num_rows + (percentage*1.5)),
+            colour = "#e08214", na.rm = TRUE, size = 5, alpha = 0.25) +
+  geom_text(aes(x = study, y = dummy_num_rows, label = num_rows),
+                      fontface = "plain",
+                      show.legend = FALSE,
+                      na.rm = TRUE) +
+  ## Count subheading
+  geom_text(aes(x = NA, y = dummy_num_rows),
+                     label = "Count",
+                     size = 3,
+                     fontface = "bold",
+                     show.legend = FALSE,
+                     na.rm = TRUE) +
+  coord_flip() +
+  scale_fill_identity() +
+  ylim(0, 5) +
+  theme_gofer()
+
+## Preparing age data
+data_age <- data_gofer %>%
+  tidyr::unnest_legacy() %>%
+  dplyr::select(study, age) %>%
+  filter(!is.na(age)) %>%
+  dplyr::group_by(study) %>%
+  dplyr::arrange(dplyr::desc(study)) %>%
+  dplyr::summarise(age_median = stats::median(age), age_sd = stats::sd(age), age_min = min(age), age_max = max(age)) %>%
+  dplyr::as_tibble() |>
+  dplyr::add_row(study = NA)
+
+# Creating age plot
+p_age <- data_age %>%
+  ggplot(aes(x = study, y = age_median, fill = age_median, color = age_median, label = as.integer(age_median))) +
+  geom_segment(aes(x = study, y = age_min, xend = study, yend = age_max), colour = "black", na.rm = TRUE) +
+  geom_errorbar(aes(ymin=age_median-age_sd, ymax=age_median+age_sd), size = 2, width=.5, na.rm = TRUE) +
+  geom_point(shape = 21, size = 3.5, color = "black", stroke = 2, na.rm = TRUE) +
+  geom_point(y = data_age$age_max, shape = "l", size = 5, color = "black", na.rm = TRUE) +
+  geom_point(y = data_age$age_min, shape = "l", size = 5, color = "black", na.rm = TRUE) +
+  geom_text(color = "white", size = 2, fontface = "bold", na.rm = TRUE) +
+  geom_rect(aes(xmin = n_lines-0.4, xmax = Inf, ymin = -Inf, ymax = Inf), fill = "white", colour = "white") +
+  geom_text(aes(x = NA, y = 60),
+            label = "Age",
+            size = 3,
+            fontface = "bold",
+            color = "black",
+            show.legend = FALSE,
+            na.rm = TRUE) +
+  scale_color_gradient(low = "#9e9ac8", high = "#3f007d") +
+  scale_fill_gradient(low = "#9e9ac8", high = "#3f007d") +
+  coord_flip() +
+  scale_x_discrete(breaks = NULL) + #removes the NA line and study names
+  labs(y = "") +
+  theme_gofer(line_plot = TRUE)
+
+## Prepare sex data
+data_sex <- data_gofer %>%
+  tidyr::unnest_legacy() %>%
+  dplyr::select(study, gender) %>%
+  filter(!is.na(gender)) %>%
+  dplyr::rename(sex = gender) %>%
+  dplyr::count(study, sex) %>%
+  dplyr::group_by(study) %>%
+  dplyr::arrange(dplyr::desc(study)) %>%
+  dplyr::mutate(percentage = proportions(n)) %>%
+  dplyr::as_tibble() |>
+  dplyr::add_row(study = NA)
+
+# Create sex plot
+p_sex <- data_sex %>%
+  ggplot(aes(x = study, y = percentage, fill = sex, label = scales::percent(percentage, accuracy =1))) +
+  geom_col(position = 'stack', width = 0.4, na.rm = TRUE) +
+  geom_text(position = position_stack(vjust = 0.45),  # Use position_stack
+            color = "white",
+            size = 2.5,
+            fontface = "bold",
+            na.rm = TRUE) +
+  geom_text(data = filter(data_sex, sex == 'male'),
+            aes(x = study, y = 0, label = "M"),
+            y = -0.075,
+            size = 4,
+            fontface = "bold",
+            color = "black",
+            na.rm = TRUE) +
+  geom_text(data = filter(data_sex, sex == 'female'),
+            aes(x = study, y = 0, label = "F"),
+            y = 1.075,
+            size = 4,
+            fontface = "bold",
+            color = "black",
+            na.rm = TRUE) +
+  scale_x_discrete(breaks = NULL) +
+  scale_fill_manual(values = c("#6a51a3", "#9e9ac8")) +
+  geom_text(aes(x = NA, y = 0.5),
+            label = "Sex",
+            size = 3,
+            fontface = "bold",
+            show.legend = FALSE,
+            na.rm = TRUE) +
+  coord_flip(ylim = c(-.1, 1.1)) + # ylim creates a buffer for the "M" and "F"
+  theme_gofer(line_plot = FALSE)
+
+
+# Create title panels with rounded rectangles
+t_study <- title_panel("Study", "purple")
+t_sample <- title_panel("Sample", "#fe9929")
+t_char <- title_panel("Demographics", "#807dba")
+
+layout <- c(
+  area(t = 1, l = 1, b = 1, r = 1), # t_study
+  area(t = 1, l = 2, b = 1, r = 4), # t_sample
+  area(t = 1, l = 5, b = 1, r = 8), # t_char
+  area(t = 2, l = 1, b = 50, r = 8), # p_gap_grid studies 
+  area(t = 2, l = 1, b = 50, r = 1), # p_studies
+  area(t = 2, l = 2, b = 50, r = 8), # p_grid 
+  area(t = 2, l = 2, b = 50, r = 4), # p_sample
+  area(t = 2, l = 5, b = 50, r = 6), # p_age
+  area(t = 2, l = 7, b = 50, r = 8)  # p_sex
+)
+
+t_study + 
+  t_sample +
+  t_char + 
+  p_gap_grid +
+  p_studies +
+  p_grid +
+  p_sample +
+  p_age +
+  p_sex +
+    #plot_annotation(
+    #title = 'For another time',
+    #caption = 'Probably...') +
+  plot_layout(nrow = 1, design = layout, guides = "keep")  
+
+```
+
+
+## Databases are powerful tools for any data-dependent field
+
+```{=html}
+<iframe width="1100" height="700" src="sankey_diagram.html" title="Visualize pangenomic compression"></iframe>
+```
+
+## Outreach is vital for career and self-care 
+
+![](workshop-poster-v2.svg){.absolute left=250 width="400"}
+
+## Finding the most ***readable*** article can make reading easier
+
+
+::: panel-tabset
+## Results
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE, results='hide'}
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+#| class: vscroll
+library(dplyr) # Data manipulation
+library(gt) #Presentation-ready tables
+library(bibliometrix)  #Load the site search results
+library(quanteda.textstats) # analysis tool for readability
+library(tidyverse) #Organize the data
+
+wos <- convert2df(file = "wos-plaintext-savedrecs.txt", dbsource="wos",format="plaintext")
+
+scop <- convert2df(file = "scopus-bib-crc.bib", dbsource = "scopus", format = "bibtex")
+
+pubmed <- convert2df(file = "pubmed-plaintext-colorectal-set.txt", dbsource = "pubmed", format = "plaintext")
+
+fulldb <- mergeDbSources(wos, scop, pubmed, remove.duplicated = TRUE) %>%
+  drop_na(TI, DI, AB)  #remove NA values
+```
+
+```{r, warning=FALSE, echo=FALSE, message=FALSE}
+#| echo: false
+#| eval: true
+#| message: false
+#| warning: false
+#| class: vscroll
+#create an abstract only character vector
+fdb.ab <- fulldb$AB %>% 
+  textstat_readability(measure = c("Dale.Chall.old", #min
+                                   "Flesch.Kincaid", #min
+                                   "FOG", #min
+                                   "SMOG", #min
+                                   "Flesch")) %>% #max
+  cbind(fulldb$TI, fulldb$DI) %>% #add titles
+  rename_at(7, ~'Titles') %>%
+  rename_at(8, ~'DOI') %>%
+  na.omit()
+
+looong <- tidyr::pivot_longer(fdb.ab, 
+                              cols = c(Dale.Chall.old,
+                                       FOG,
+                                       SMOG,
+                                       Flesch.Kincaid,
+                                       Flesch)
+                              ) %>%
+                                as_tibble()
+
+looong %>% #Use the longer dataframe
+  mutate(Titles = sprintf('<a href = "https://www.doi.org/%s">%s</a>', 
+                          DOI, 
+                          Titles),
+         Titles = lapply(Titles, gt::html)) %>% #Hyperlink each Title with DOI link
+  arrange(factor(name, levels = c("Flesch",
+                                  "Dale.Chall.old",
+                                  "FOG",
+                                  "SMOG",
+                                  "Flesch.Kincaid"
+  )
+  ), value) %>%
+  group_by(name) %>% #while we could use 
+  #`group_by(name) %>% arrange(name, value)`
+  #using `arrange(factor())` allows us to
+  #set the order of the groups!
+  filter((name %in% c("Dale.Chall.old", "FOG", "SMOG", "Flesch.Kincaid") & 
+            row_number() %in% 1:20 |
+            (name %in% "Flesch" & row_number() %in% (n()-19):n()))) %>% 
+  #above we "filtered" the first 10 and bottom 10 rows of corresponding stats
+  #remember that we have "arranged" each group by ascending values 
+  #arrange(value = ifelse(name %in% "Flesch", desc(value), value)) #%>% 
+  mutate(arrange_value = ifelse(name == "Flesch", -value, value)) %>%
+  arrange(arrange_value) %>%
+  select(-arrange_value) %>%
+  #if the name column contains Flesch
+  #"arrange" by decreasing values 
+  gt() %>%
+  cols_hide(columns = c(document, DOI)) %>%
+  tab_stubhead(label = "Titles") %>%
+  fmt_number(columns = value, decimals = 2)  %>%
+  tab_header(
+    title = md("The *most* readable documents"),
+    subtitle = "Five readability statistics; Flesch, the old Dale-Chall, FOG, SMOG, and Flesch-Kincaid"
+  ) %>%
+  tab_style(
+    locations = cells_title(groups = "title"),
+    style     = list(
+      cell_text(weight = "bold", 
+                size = 24)
+    )
+  )%>%
+  tab_options(
+    column_labels.border.top.width = px(3),
+    column_labels.border.top.color = "transparent",
+    table.border.top.color = "transparent",
+    table.border.bottom.color = "transparent",
+    data_row.padding = px(3),
+    source_notes.font.size = 12,
+    row_group.background.color = "grey") %>%
+  tab_style(
+    locations = cells_column_labels(columns = everything()),
+    style     = list(
+      cell_borders(sides = "bottom", 
+                   weight = px(3)),
+      cell_text(weight = "bold")
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(
+        align = "center",
+        weight = "bold"
+      )
+    ),
+    locations = list(
+      cells_row_groups(
+        groups = c("Dale.Chall.old",
+                   "FOG",
+                   "SMOG",
+                   "Flesch.Kincaid",
+                   "Flesch")
+      )
+    )
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = Titles
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_body(
+      columns = Titles
+    )
+  ) %>%
+  tab_source_note(
+    source_note = md("Source: PubMed, SCOPUS, WoS; Colorectal Metagenome and Metabolome Search")
+  ) %>%
+  tab_source_note(
+    source_note = md(
+      'Query: TITLE-ABS-KEY ( "colorectal cancer*"  OR  "colorectal neoplas*"  OR  "adenomatous polyposis coli"  OR  "colon* neoplas*"  OR  "rectal neoplas*"  OR  "hereditary nonpolypo*"  AND  "metagenom*"  AND  "metabol*" )'
+    )
+  ) %>%
+  tab_footnote(
+    footnote = md("The **lowest** estimated grade level."),
+    locations = cells_body(
+      columns = value,
+      rows = value == min(value)
+    )
+  ) %>%
+  opt_footnote_marks(marks = c("*", "+"))
+
+```
+
+## Code
+
+```{r, warning=FALSE, echo=FALSE, results='hide'}
+#| echo: true
+#| eval: false
+library(dplyr) # Data manipulation
+library(gt) #Presentation-ready tables
+library(bibliometrix)  #Load the site search results
+library(quanteda.textstats) # analysis tool for readability
+library(tidyverse) #Organize the data
+
+wos <- convert2df(file = "wos-plaintext-savedrecs.txt", dbsource="wos",format="plaintext")
+
+scop <- convert2df(file = "scopus-bib-crc.bib", dbsource = "scopus", format = "bibtex")
+
+pubmed <- convert2df(file = "pubmed-plaintext-colorectal-set.txt", dbsource = "pubmed", format = "plaintext")
+
+fulldb <- mergeDbSources(wos, scop, pubmed, remove.duplicated = TRUE) %>%
+  drop_na(TI, DI, AB)  #remove NA values
+
+#create an abstract only character vector
+fdb.ab <- fulldb$AB %>% 
+  textstat_readability(measure = c("Dale.Chall.old", #min
+                                   "Flesch.Kincaid", #min
+                                   "FOG", #min
+                                   "SMOG", #min
+                                   "Flesch")) %>% #max
+  cbind(fulldb$TI, fulldb$DI) %>% #add titles
+  rename_at(7, ~'Titles') %>%
+  rename_at(8, ~'DOI')
+
+looong <- tidyr::pivot_longer(fdb.ab, 
+                              cols = c(Dale.Chall.old,
+                                       FOG,
+                                       SMOG,
+                                       Flesch.Kincaid,
+                                       Flesch)
+                              ) %>%
+                                as_tibble()
+
+looong %>% #Use the longer dataframe
+  mutate(Titles = sprintf('<a href = "https://www.doi.org/%s">%s</a>', 
+                          DOI, 
+                          Titles),
+         Titles = lapply(Titles, gt::html)) %>% #Hyperlink each Title with DOI link
+  arrange(factor(name, levels = c("Flesch",
+                                  "Dale.Chall.old",
+                                  "FOG",
+                                  "SMOG",
+                                  "Flesch.Kincaid"
+  )
+  ), value) %>%
+  group_by(name) %>% #while we could use 
+  #`group_by(name) %>% arrange(name, value)`
+  #using `arrange(factor())` allows us to
+  #set the order of the groups!
+  filter((name %in% c("Dale.Chall.old", "FOG", "SMOG", "Flesch.Kincaid") & 
+            row_number() %in% 1:20 |
+            (name %in% "Flesch" & row_number() %in% (n()-19):n()))) %>% 
+  #above we "filtered" the first 10 and bottom 10 rows of corresponding stats
+  #remember that we have "arranged" each group by ascending values 
+  #arrange(value = ifelse(name %in% "Flesch", desc(value), value)) #%>% 
+  mutate(arrange_value = ifelse(name == "Flesch", -value, value)) %>%
+  arrange(arrange_value) %>%
+  select(-arrange_value) %>%
+  #if the name column contains Flesch
+  #"arrange" by decreasing values 
+  gt() %>%
+  cols_hide(columns = c(document, DOI)) %>%
+  tab_stubhead(label = "Titles") %>%
+  fmt_number(columns = value, decimals = 2)  %>%
+  tab_header(
+    title = md("The *most* readable documents"),
+    subtitle = "Five readability statistics; Flesch, the old Dale-Chall, FOG, SMOG, and Flesch-Kincaid"
+  ) %>%
+  tab_style(
+    locations = cells_title(groups = "title"),
+    style     = list(
+      cell_text(weight = "bold", 
+                size = 24)
+    )
+  )%>%
+  tab_options(
+    column_labels.border.top.width = px(3),
+    column_labels.border.top.color = "transparent",
+    table.border.top.color = "transparent",
+    table.border.bottom.color = "transparent",
+    data_row.padding = px(3),
+    source_notes.font.size = 12,
+    row_group.background.color = "grey") %>%
+  tab_style(
+    locations = cells_column_labels(columns = everything()),
+    style     = list(
+      cell_borders(sides = "bottom", 
+                   weight = px(3)),
+      cell_text(weight = "bold")
+    )
+  ) %>%
+  tab_style(
+    style = list(
+      cell_text(
+        align = "center",
+        weight = "bold"
+      )
+    ),
+    locations = list(
+      cells_row_groups(
+        groups = c("Dale.Chall.old",
+                   "FOG",
+                   "SMOG",
+                   "Flesch.Kincaid",
+                   "Flesch")
+      )
+    )
+  ) %>%
+  cols_align(
+    align = "left",
+    columns = Titles
+  ) %>%
+  tab_style(
+    style = cell_text(size = px(12)),
+    locations = cells_body(
+      columns = Titles
+    )
+  ) %>%
+  tab_source_note(
+    source_note = md("Source: PubMed, SCOPUS, WoS; Colorectal Metagenome and Metabolome Search")
+  ) %>%
+  tab_source_note(
+    source_note = md(
+      'Query: TITLE-ABS-KEY ( "colorectal cancer*"  OR  "colorectal neoplas*"  OR  "adenomatous polyposis coli"  OR  "colon* neoplas*"  OR  "rectal neoplas*"  OR  "hereditary nonpolypo*"  AND  "metagenom*"  AND  "metabol*" )'
+    )
+  ) %>%
+  tab_footnote(
+    footnote = md("The **lowest** estimated grade level."),
+    locations = cells_body(
+      columns = value, 
+      rows = value == min(value)
+    )
+  ) %>%
+  opt_footnote_marks(marks = c("*", "+"))
+
+```
+:::
+
+# [Acknowledgements]{.smaller}
+
+::: {layout="[[30, -3, 30, -4, 33], [100]]" .vscroll}
+
+![C. Titus Brown](titus-headshot.png)
+
+![The DataLab](datalab.jpg)
+
+![BMCDB](bmcdb.jpg)
+
+![The DIB Lab](dib-lab.png)
+
+:::
+
+## Appendix
+
+### Wet or Dry lab?
+
+![](Infographic_WetDryLab_v2.png)
+
